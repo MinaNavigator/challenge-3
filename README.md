@@ -1,3 +1,9 @@
+# Challenge 3
+
+smartcontract /packages/chain/src/challenge.ts
+test /packages/chain/test/challenge.test.ts
+
+
 # Protokit starter-kit
 
 This repository is a monorepo aimed at kickstarting application chain development using the Protokit framework.

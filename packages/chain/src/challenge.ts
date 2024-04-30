@@ -1,7 +1,7 @@
 import { runtimeModule, state, runtimeMethod, RuntimeModule } from "@proto-kit/module";
 import { State, StateMap, assert } from "@proto-kit/protocol";
 import { Balance, Balances as BaseBalances, TokenId, UInt64 } from "@proto-kit/library";
-import { Bool, Field, Poseidon, PublicKey, Struct } from "o1js";
+import { Bool, Character, Field, Poseidon, PublicKey, Struct } from "o1js";
 import { emptyValue } from "o1js/dist/node/lib/proof_system";
 
 interface Message {
@@ -11,8 +11,8 @@ interface Message {
 
 interface MessageDetail {
     AgentId: Field;
-    Message: Field[];
-    SecurityCode: Field[];
+    Message: Character[];
+    SecurityCode: Character[];
 }
 
 
@@ -37,12 +37,12 @@ export class Challenge extends RuntimeModule<Message> {
     @runtimeMethod()
     public addAgent(
         AgentId: Field,
-        SecurityCode: Field[]
+        SecurityCode: Character[]
     ): void {
         const agentStateCurrent = this.agentState.get(AgentId);
         assert(agentStateCurrent.value.isEmpty(), "Agent already Exist");
         assert(Bool(SecurityCode.length == 2), "Incorrect security code size");
-        const securityCodeHash = Poseidon.hash(SecurityCode);
+        const securityCodeHash = Poseidon.hash(SecurityCode.map(x => x.toField()));
         this.agentState.set(AgentId, new AgentState({ LastMessage: Field(0), SecurityCode: securityCodeHash }));
     }
 
@@ -56,7 +56,7 @@ export class Challenge extends RuntimeModule<Message> {
         assert(Bool(Message.MessageDetail.SecurityCode.length == 2), "Incorrect security code size");
         assert(Bool(Message.MessageDetail.Message.length == 12), "Incorrect message size");
 
-        const securityCodeHash = Poseidon.hash(Message.MessageDetail.SecurityCode);
+        const securityCodeHash = Poseidon.hash(Message.MessageDetail.SecurityCode.map(x => x.toField()));
         assert(securityCodeHash.equals(agentStateCurrent.value.SecurityCode), "Incorrect security code");
 
         agentStateCurrent.value.LastMessage.assertLessThan(Message.MessageNumber, "Incorrect message number");
