@@ -13,6 +13,10 @@ describe("challenge", () => {
     let appChain: ReturnType<
         typeof TestingAppChain.fromRuntime<{ Challenge: typeof Challenge }>
     >;
+
+    const alicePrivateKey = PrivateKey.random();
+    const alice = alicePrivateKey.toPublicKey();
+
     beforeAll(async () => {
         appChain = TestingAppChain.fromRuntime({
             Challenge,
@@ -20,12 +24,15 @@ describe("challenge", () => {
 
         appChain.configurePartial({
             Runtime: {
-                Challenge: new Map([[Field(0), new AgentState({ LastMessage: Field(0), SecurityCode: Field(22) })]]),
+                Challenge: {},
                 Balances: {}
             },
         });
 
+
         await appChain.start();
+
+        appChain.setSigner(alicePrivateKey);
 
         contract = appChain.runtime.resolve("Challenge");
     });
@@ -33,25 +40,20 @@ describe("challenge", () => {
 
 
     it("add new message", async () => {
-        const alicePrivateKey = PrivateKey.random();
-        const alice = alicePrivateKey.toPublicKey();
-
-        appChain.setSigner(alicePrivateKey);
 
         // add agent
         const tx1 = await appChain.transaction(alice, () => {
             contract.addAgent(Field(1), CircuitString.fromString("A5"));
-            contract.addAgent(Field(2), CircuitString.fromString("Z4"));
         });
         await tx1.sign();
         await tx1.send();
 
 
         let block = await appChain.produceBlock();
-        console.log("status", block?.transactions[0].statusMessage);
 
-        let agent = await contract.agentState.get(Field(0));
-        console.log(agent);
+        let agent = await appChain.query.runtime.Challenge.agentState.get(Field(1));
+        console.log("agent last message", agent?.LastMessage.toJSON());
+        expect(agent?.LastMessage).toEqual(Field(0));
 
         let message: Message = {
             MessageNumber: Field(1),
@@ -69,6 +71,8 @@ describe("challenge", () => {
         await tx2.send();
 
         block = await appChain.produceBlock();
-
+        agent = await appChain.query.runtime.Challenge.agentState.get(Field(1));
+        console.log("agent last message", agent?.LastMessage.toJSON());
+        expect(agent?.LastMessage).toEqual(Field(1));
     });
 });

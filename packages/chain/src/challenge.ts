@@ -31,7 +31,7 @@ function checkLength(text: CircuitString, length: number) {
 
 
 @runtimeModule()
-export class Challenge extends RuntimeModule<Map<Field, AgentState>> {
+export class Challenge extends RuntimeModule {
     @state() public agentState = StateMap.from<Field, AgentState>(Field, AgentState);
 
     @runtimeMethod()
@@ -40,7 +40,7 @@ export class Challenge extends RuntimeModule<Map<Field, AgentState>> {
         SecurityCode: CircuitString
     ): void {
         const agentStateCurrent = this.agentState.get(AgentId);
-        agentStateCurrent.isSome.assertFalse("Agent already Exist");
+        assert(agentStateCurrent.isSome.not(), "Agent already exist");
         checkLength(SecurityCode, 2);
         const securityCodeHash = Poseidon.hash(SecurityCode.toFields());
         this.agentState.set(AgentId, new AgentState({ LastMessage: Field(0), SecurityCode: securityCodeHash }));
@@ -51,8 +51,7 @@ export class Challenge extends RuntimeModule<Map<Field, AgentState>> {
         Message: Message
     ): void {
         const agentStateCurrent = this.agentState.get(Message.MessageDetail.AgentId);
-        agentStateCurrent.isSome.assertTrue("Agent didn't exist");
-
+        assert(agentStateCurrent.isSome, "Agent didn't exist");
         checkLength(Message.MessageDetail.SecurityCode, 2);
         checkLength(Message.MessageDetail.Message, 12);
 
