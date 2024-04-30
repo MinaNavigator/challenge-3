@@ -31,7 +31,7 @@ function checkLength(text: CircuitString, length: number) {
 
 
 @runtimeModule()
-export class Challenge extends RuntimeModule<Map<Field, AgentState>> {
+export class ChallengePrivacy extends RuntimeModule {
     @state() public agentState = StateMap.from<Field, AgentState>(Field, AgentState);
 
     @runtimeMethod()

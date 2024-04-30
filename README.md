@@ -1,7 +1,16 @@
-# Challenge 3 & 4
+# Challenge 3
 
 smartcontract /packages/chain/src/challenge.ts
 test /packages/chain/test/challenge.test.ts
+
+The spymaster is worried that this design is not
+private.
+Is he correct ?
+Yes, the data remaining public and we can easily retrieve it from the blockchain, everything is public on the blockchain
+I think we need to implement hashing and salt solution to encode data
+
+# Challenge 4
+
 
 
 # Protokit starter-kit

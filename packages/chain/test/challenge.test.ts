@@ -15,15 +15,12 @@ describe("challenge", () => {
     >;
     beforeAll(async () => {
         appChain = TestingAppChain.fromRuntime({
-
             Challenge,
-
         });
 
         appChain.configurePartial({
             Runtime: {
-                Challenge: {
-                },
+                Challenge: new Map([[Field(0), new AgentState({ LastMessage: Field(0), SecurityCode: Field(22) })]]),
                 Balances: {}
             },
         });
@@ -44,15 +41,16 @@ describe("challenge", () => {
         // add agent
         const tx1 = await appChain.transaction(alice, () => {
             contract.addAgent(Field(1), CircuitString.fromString("A5"));
-            //contract.addAgent(Field(2), CircuitString.fromString("Z4"));
+            contract.addAgent(Field(2), CircuitString.fromString("Z4"));
         });
         await tx1.sign();
         await tx1.send();
 
 
         let block = await appChain.produceBlock();
+        console.log("status", block?.transactions[0].statusMessage);
 
-        let agent = await contract.agentState.get(Field(1));
+        let agent = await contract.agentState.get(Field(0));
         console.log(agent);
 
         let message: Message = {
