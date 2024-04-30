@@ -4,12 +4,12 @@ import { Balance, Balances as BaseBalances, TokenId, UInt64 } from "@proto-kit/l
 import { Bool, Character, Field, Poseidon, PublicKey, Struct } from "o1js";
 import { emptyValue } from "o1js/dist/node/lib/proof_system";
 
-interface Message {
+export interface Message {
     MessageNumber: Field;
     MessageDetail: MessageDetail;
 }
 
-interface MessageDetail {
+export interface MessageDetail {
     AgentId: Field;
     Message: Character[];
     SecurityCode: Character[];

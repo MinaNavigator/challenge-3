@@ -1,4 +1,4 @@
-# Challenge 3
+# Challenge 3 & 4
 
 smartcontract /packages/chain/src/challenge.ts
 test /packages/chain/test/challenge.test.ts
@@ -48,6 +48,9 @@ pnpm dev
 pnpm dev -- --filter web
 # starts sequencer only
 pnpm dev -- --filter chain
+
+# in my case
+pnpm dev --filter chain
 ```
 
 ### Running tests
