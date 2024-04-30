@@ -1,14 +1,14 @@
 import { Balance } from "@proto-kit/library";
 import { Balances } from "./balances";
 import { ModulesConfig } from "@proto-kit/common";
+import { Challenge } from "./challenge";
 
 export const modules = {
-  Balances,
+  Challenge,
 };
 
 export const config: ModulesConfig<typeof modules> = {
-  Balances: {
-    totalSupply: Balance.from(10_000),
+  Challenge: {
   },
 };
 

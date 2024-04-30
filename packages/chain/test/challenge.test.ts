@@ -1,6 +1,6 @@
 import { TestingAppChain } from "@proto-kit/sdk";
 import { Character, CircuitString, Field, PrivateKey } from "o1js";
-import { Challenge, Message } from "../src/challenge";
+import { Challenge, Message, AgentState } from "../src/challenge";
 import { log } from "@proto-kit/common";
 import { Balances, BalancesKey, TokenId, UInt64 } from "@proto-kit/library";
 import { cp } from "fs";
@@ -10,11 +10,14 @@ log.setLevel("ERROR");
 
 describe("challenge", () => {
     let contract: Challenge;
-    let appChain: any;
+    let appChain: ReturnType<
+        typeof TestingAppChain.fromRuntime<{ Challenge: typeof Challenge }>
+    >;
     beforeAll(async () => {
         appChain = TestingAppChain.fromRuntime({
-            Balances,
-            Challenge
+
+            Challenge,
+
         });
 
         appChain.configurePartial({
@@ -49,8 +52,8 @@ describe("challenge", () => {
 
         let block = await appChain.produceBlock();
 
-        let agent = contract.agentState.get(Field(1));
-
+        let agent = await contract.agentState.get(Field(1));
+        console.log(agent);
 
         let message: Message = {
             MessageNumber: Field(1),
