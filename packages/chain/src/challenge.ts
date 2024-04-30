@@ -11,8 +11,8 @@ interface Message {
 
 interface MessageDetail {
     AgentId: Field;
-    Characters: [12];
-    SecurityCode: [2];
+    Message: Field[];
+    SecurityCode: Field[];
 }
 
 
@@ -41,8 +41,28 @@ export class Challenge extends RuntimeModule<Message> {
     ): void {
         const agentStateCurrent = this.agentState.get(AgentId);
         assert(agentStateCurrent.value.isEmpty(), "Agent already Exist");
-        assert(Bool(SecurityCode.length == 2), "Incorrect security code");
+        assert(Bool(SecurityCode.length == 2), "Incorrect security code size");
         const securityCodeHash = Poseidon.hash(SecurityCode);
         this.agentState.set(AgentId, new AgentState({ LastMessage: Field(0), SecurityCode: securityCodeHash }));
+    }
+
+    @runtimeMethod()
+    public addMessage(
+        Message: Message
+    ): void {
+        const agentStateCurrent = this.agentState.get(Message.MessageDetail.AgentId);
+        agentStateCurrent.value.isEmpty().assertFalse("Agent didn't exist");
+
+        assert(Bool(Message.MessageDetail.SecurityCode.length == 2), "Incorrect security code size");
+        assert(Bool(Message.MessageDetail.Message.length == 12), "Incorrect message size");
+
+        const securityCodeHash = Poseidon.hash(Message.MessageDetail.SecurityCode);
+        assert(securityCodeHash.equals(agentStateCurrent.value.SecurityCode), "Incorrect security code");
+
+        agentStateCurrent.value.LastMessage.assertLessThan(Message.MessageNumber, "Incorrect message number");
+
+        agentStateCurrent.value.LastMessage = Message.MessageNumber;
+        // update data with last message number
+        this.agentState.set(Message.MessageDetail.AgentId, agentStateCurrent.value);
     }
 }
