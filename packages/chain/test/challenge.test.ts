@@ -17,7 +17,7 @@ describe("challenge", () => {
     const alicePrivateKey = PrivateKey.random();
     const alice = alicePrivateKey.toPublicKey();
 
-    beforeAll(async () => {
+    beforeEach(async () => {
         appChain = TestingAppChain.fromRuntime({
             Challenge,
         });

@@ -60,8 +60,14 @@ export class Challenge extends RuntimeModule {
 
         assert(agentStateCurrent.value.LastMessage.lessThan(Message.MessageNumber), "Incorrect message number");
 
-        agentStateCurrent.value.LastMessage = Message.MessageNumber;
         // update data with last message number
-        this.agentState.set(Message.MessageDetail.AgentId, agentStateCurrent.value);
+        this.setState(Message.MessageDetail.AgentId, Message.MessageNumber);
+    }
+
+    protected setState(AgentId: Field, LastMessage: Field) {
+        const agentStateCurrent = this.agentState.get(AgentId);
+        agentStateCurrent.value.LastMessage = LastMessage;
+        // update data with last message number
+        this.agentState.set(AgentId, agentStateCurrent.value);
     }
 }

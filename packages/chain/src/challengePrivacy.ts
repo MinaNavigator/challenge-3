@@ -1,7 +1,7 @@
 import { runtimeModule, state, runtimeMethod, RuntimeModule } from "@proto-kit/module";
 import { State, StateMap, assert } from "@proto-kit/protocol";
-import { Balance, Balances as BaseBalances, TokenId, UInt64 } from "@proto-kit/library";
-import { Bool, Character, CircuitString, Experimental, Field, Poseidon, PublicKey, Struct } from "o1js";
+import { Balance, Balances as BaseBalances, TokenId, } from "@proto-kit/library";
+import { Bool, Character, CircuitString, Experimental, Field, Poseidon, PublicKey, Struct, UInt64 } from "o1js";
 import { emptyValue } from "o1js/dist/node/lib/proof_system";
 import { AgentState, Challenge, Message, checkLength } from "./challenge";
 
@@ -51,11 +51,11 @@ export class ChallengePrivacy extends Challenge {
     public override addMessage(
         Message: Message
     ): void {
-        Bool(false).assertTrue("ObsoleteMethod use Proof Message");
+        assert(Bool(false), ("ObsoleteMethod use addProofMessage"));
     }
 
     @runtimeMethod()
-    public ProofMessage(
+    public addProofMessage(
         Proof: AgentProofData
     ): void {
         const output = Proof.publicOutput;
@@ -66,8 +66,24 @@ export class ChallengePrivacy extends Challenge {
 
         Proof.verify();
 
-        agentStateCurrent.value.LastMessage = output.LastMessage;
+        this.setState(output.AgentId, output.LastMessage);
+
+
+    }
+
+    protected override setState(AgentId: Field, LastMessage: Field) {
+        const agentStateCurrent = this.agentState.get(AgentId);
+        agentStateCurrent.value.LastMessage = LastMessage;
         // update data with last message number
-        this.agentState.set(output.AgentId, agentStateCurrent.value);
+        this.agentState.set(AgentId, agentStateCurrent.value);
+
+        // store block data
+        const blockInfo = new BlockInfo({
+            BlockHeight: this.network.block.height,
+            Sender: this.transaction.sender.value,
+            SenderNonce: this.transaction.nonce.value,
+        });
+
+        this.agentBlockInfo.set(AgentId, blockInfo);
     }
 }

@@ -1,7 +1,7 @@
 import { TestingAppChain } from "@proto-kit/sdk";
 import { Character, CircuitString, Field, PrivateKey } from "o1js";
 import { Message, AgentState } from "../src/challenge";
-import { ChallengePrivacy } from "../src/challengePrivacy";
+import { AgentProof, ChallengePrivacy } from "../src/challengePrivacy";
 import { log } from "@proto-kit/common";
 import { Balances, BalancesKey, TokenId, UInt64 } from "@proto-kit/library";
 import { cp } from "fs";
@@ -19,6 +19,10 @@ describe("challenge privacy", () => {
     const alice = alicePrivateKey.toPublicKey();
 
     beforeAll(async () => {
+        await AgentProof.compile();
+    });
+
+    beforeEach(async () => {
         appChain = TestingAppChain.fromRuntime({
             ChallengePrivacy,
         });
@@ -30,12 +34,21 @@ describe("challenge privacy", () => {
             },
         });
 
-
         await appChain.start();
 
         appChain.setSigner(alicePrivateKey);
 
         contract = appChain.runtime.resolve("ChallengePrivacy");
+
+    });
+
+    it("query blockchain", async () => {
+
+
+    });
+
+    it("add new message", async () => {
+
 
         // add agent
         const tx1 = await appChain.transaction(alice, () => {
@@ -46,9 +59,6 @@ describe("challenge privacy", () => {
 
 
         let block = await appChain.produceBlock();
-    });
-
-    it("add new message", async () => {
 
         let agent = await appChain.query.runtime.ChallengePrivacy.agentState.get(Field(1));
         console.log("agent last message", agent?.LastMessage.toJSON());
@@ -62,14 +72,21 @@ describe("challenge privacy", () => {
                 Message: CircuitString.fromString("test12345678")
             }
         };
+
+        const proof = await AgentProof.proveMessage(
+            message
+        );
+        console.log("proof generated");
+
         const tx2 = await appChain.transaction(alice, () => {
-            contract.addMessage(message);
+            contract.addProofMessage(proof);
         });
 
         await tx2.sign();
         await tx2.send();
-
+        console.log("sent");
         await appChain.produceBlock();
+        console.log("block built");
         agent = await appChain.query.runtime.ChallengePrivacy.agentState.get(Field(1));
         console.log("agent last message", agent?.LastMessage.toJSON());
 
@@ -87,8 +104,11 @@ describe("challenge privacy", () => {
                 Message: CircuitString.fromString("test12345678")
             }
         };
+        const proof = await AgentProof.proveMessage(
+            message
+        );
         const tx2 = await appChain.transaction(alice, () => {
-            contract.addMessage(message);
+            contract.addProofMessage(proof);
         });
 
         await tx2.sign();
@@ -108,8 +128,11 @@ describe("challenge privacy", () => {
                 Message: CircuitString.fromString("test12345678")
             }
         };
+        const proof = await AgentProof.proveMessage(
+            message
+        );
         const tx2 = await appChain.transaction(alice, () => {
-            contract.addMessage(message);
+            contract.addProofMessage(proof);
         });
 
         await tx2.sign();
@@ -132,35 +155,42 @@ describe("challenge privacy", () => {
 
         // The message is of the correct length.
         await expect(async () => {
-            await appChain.transaction(alice, () => {
-                contract.addMessage(message);
-            })
+            const proof = await AgentProof.proveMessage(
+                message
+            );
+            const tx2 = await appChain.transaction(alice, () => {
+                contract.addProofMessage(proof);
+            });
         }).rejects.toThrow("Incorrect length");
 
     });
 
-    // infinite loop error with this test
-    // it("Message number greather", async () => {
 
-    //     let agent = await appChain.query.runtime.Challenge.agentState.get(Field(1));
-    //     console.log("agent last message", agent?.LastMessage.toJSON());
-    //     expect(agent?.LastMessage).toEqual(Field(0));
+    it("Message number greather", async () => {
 
-    //     let message: Message = {
-    //         MessageNumber: Field(0),
-    //         MessageDetail: {
-    //             AgentId: Field(1),
-    //             SecurityCode: CircuitString.fromString("A5"),
-    //             Message: CircuitString.fromString("test12345678")
-    //         }
-    //     };
+        let message: Message = {
+            MessageNumber: Field(0),
+            MessageDetail: {
+                AgentId: Field(1),
+                SecurityCode: CircuitString.fromString("A5"),
+                Message: CircuitString.fromString("test12345678")
+            }
+        };
 
-    //     // The message number is greater than the highest so far for that agent   
-    //     await expect(async () => {
-    //         await appChain.transaction(alice, () => {
-    //             contract.addMessage(message);
-    //         })
-    //     }).rejects.toThrow("Incorrect message number");
+        const proof = await AgentProof.proveMessage(
+            message
+        );
+        const tx2 = await appChain.transaction(alice, () => {
+            contract.addProofMessage(proof);
+        });
 
-    // });
+        await tx2.sign();
+        await tx2.send();
+
+
+        //The message number is greater than the highest so far for that agent   
+        const block = await appChain.produceBlock();
+        expect(block?.transactions[0].statusMessage).toEqual("Incorrect message number");
+
+    });
 });
