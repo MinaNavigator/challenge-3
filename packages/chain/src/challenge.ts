@@ -24,7 +24,7 @@ export class AgentState extends Struct({
 }
 
 
-function checkLength(text: CircuitString, length: number) {
+export function checkLength(text: CircuitString, length: number) {
     text.values[length - 1].isNull().assertFalse("Incorrect length");
     text.values[length].isNull().assertTrue("Incorrect length");
 }
@@ -58,7 +58,7 @@ export class Challenge extends RuntimeModule {
         const securityCodeHash = Poseidon.hash(Message.MessageDetail.SecurityCode.toFields());
         assert(securityCodeHash.equals(agentStateCurrent.value.SecurityCode), "Incorrect security code");
 
-        agentStateCurrent.value.LastMessage.assertLessThan(Message.MessageNumber, "Incorrect message number");
+        assert(agentStateCurrent.value.LastMessage.lessThan(Message.MessageNumber), "Incorrect message number");
 
         agentStateCurrent.value.LastMessage = Message.MessageNumber;
         // update data with last message number

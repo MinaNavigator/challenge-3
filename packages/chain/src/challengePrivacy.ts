@@ -1,68 +1,73 @@
 import { runtimeModule, state, runtimeMethod, RuntimeModule } from "@proto-kit/module";
 import { State, StateMap, assert } from "@proto-kit/protocol";
 import { Balance, Balances as BaseBalances, TokenId, UInt64 } from "@proto-kit/library";
-import { Bool, Character, CircuitString, Field, Poseidon, PublicKey, Struct } from "o1js";
+import { Bool, Character, CircuitString, Experimental, Field, Poseidon, PublicKey, Struct } from "o1js";
 import { emptyValue } from "o1js/dist/node/lib/proof_system";
+import { AgentState, Challenge, Message, checkLength } from "./challenge";
 
 
-export class MessageDetail extends Struct({
+export class BlockInfo extends Struct({
+    BlockHeight: UInt64,
+    Sender: PublicKey,
+    SenderNonce: UInt64,
+}) { }
+
+export class ProofInfo extends Struct({
     AgentId: Field,
-    Message: CircuitString,
-    SecurityCode: CircuitString
-}) { };
-
-export class Message extends Struct({
-    MessageNumber: Field,
-    MessageDetail: MessageDetail
-}) { };
-
-export class AgentState extends Struct({
     LastMessage: Field,
     SecurityCode: Field
-}) {
-
-}
+}) { }
 
 
-function checkLength(text: CircuitString, length: number) {
-    text.values[length - 1].isNull().assertFalse("Incorrect length");
-    text.values[length].isNull().assertTrue("Incorrect length");
-}
+export const AgentProof = Experimental.ZkProgram({
+    publicOutput: ProofInfo,
+
+    methods: {
+        proveMessage: {
+            privateInputs: [Message],
+            method(Message: Message) {
+
+                checkLength(Message.MessageDetail.SecurityCode, 2);
+                checkLength(Message.MessageDetail.Message, 12);
+
+                const securityCodeHash = Poseidon.hash(Message.MessageDetail.SecurityCode.toFields());
+
+                return new ProofInfo({ AgentId: Message.MessageDetail.AgentId, LastMessage: Message.MessageNumber, SecurityCode: securityCodeHash });
+            },
+        },
+    },
+});
+
+export class AgentProofData extends Experimental.ZkProgram.Proof(
+    AgentProof
+) { }
 
 
 @runtimeModule()
-export class ChallengePrivacy extends RuntimeModule {
-    @state() public agentState = StateMap.from<Field, AgentState>(Field, AgentState);
+export class ChallengePrivacy extends Challenge {
+    @state() public agentBlockInfo = StateMap.from<Field, BlockInfo>(Field, BlockInfo);
 
     @runtimeMethod()
-    public addAgent(
-        AgentId: Field,
-        SecurityCode: CircuitString
+    public override addMessage(
+        Message: Message
     ): void {
-        const agentStateCurrent = this.agentState.get(AgentId);
-        agentStateCurrent.isSome.assertFalse("Agent already Exist");
-        checkLength(SecurityCode, 2);
-        const securityCodeHash = Poseidon.hash(SecurityCode.toFields());
-        this.agentState.set(AgentId, new AgentState({ LastMessage: Field(0), SecurityCode: securityCodeHash }));
+        Bool(false).assertTrue("ObsoleteMethod use Proof Message");
     }
 
     @runtimeMethod()
-    public addMessage(
-        Message: Message
+    public ProofMessage(
+        Proof: AgentProofData
     ): void {
-        const agentStateCurrent = this.agentState.get(Message.MessageDetail.AgentId);
-        agentStateCurrent.isSome.assertTrue("Agent didn't exist");
+        const output = Proof.publicOutput;
+        const agentStateCurrent = this.agentState.get(output.AgentId);
+        assert(agentStateCurrent.isSome, "Agent didn't exist");
+        assert(output.SecurityCode.equals(agentStateCurrent.value.SecurityCode), "Incorrect security code");
+        assert(output.LastMessage.greaterThan(agentStateCurrent.value.LastMessage), "Incorrect message number");
 
-        checkLength(Message.MessageDetail.SecurityCode, 2);
-        checkLength(Message.MessageDetail.Message, 12);
+        Proof.verify();
 
-        const securityCodeHash = Poseidon.hash(Message.MessageDetail.SecurityCode.toFields());
-        assert(securityCodeHash.equals(agentStateCurrent.value.SecurityCode), "Incorrect security code");
-
-        agentStateCurrent.value.LastMessage.assertLessThan(Message.MessageNumber, "Incorrect message number");
-
-        agentStateCurrent.value.LastMessage = Message.MessageNumber;
+        agentStateCurrent.value.LastMessage = output.LastMessage;
         // update data with last message number
-        this.agentState.set(Message.MessageDetail.AgentId, agentStateCurrent.value);
+        this.agentState.set(output.AgentId, agentStateCurrent.value);
     }
 }

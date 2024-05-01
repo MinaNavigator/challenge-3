@@ -7,10 +7,11 @@ The spymaster is worried that this design is not
 private.
 Is he correct ?
 Yes, the data remaining public and we can easily retrieve it from the blockchain, everything is public on the blockchain
-I think we need to implement hashing and salt solution to encode data
+We can submit a proof who check the data, so the blockchain and users don't have access to the data but only on the proof
 
 # Challenge 4
-
+smartcontract /packages/chain/src/challengePrivacy.ts
+test /packages/chain/test/challengePrivacy.test.ts
 
 
 # Protokit starter-kit
